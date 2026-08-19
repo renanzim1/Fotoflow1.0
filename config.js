@@ -1,7 +1,7 @@
 // PREENCHA DEPOIS com os dados do Supabase.
 window.FOTOFLOW_CONFIG = {
-  supabaseUrl: "",
-  supabaseAnonKey: "",
+  supabaseUrl: "https://gcypuolqddimauhtsrgzg.supabase.co",
+  supabaseAnonKey: "sb_publishable_L_IqpLeyJfKjG2PuI-RRWw__eBX-Bmo",
   studioName: "Fotoflow",
-  adminPassword: "troque-esta-senha"
+  adminPassword: "960867"
 };
