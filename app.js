@@ -47,7 +47,11 @@ const demoPhotos = [
 
 function toast(text) {
   const x = document.querySelector('#toast');
-  if (!x) return alert(text);
+
+  if (!x) {
+    alert(text);
+    return;
+  }
 
   x.textContent = text;
   x.style.display = 'block';
@@ -65,6 +69,7 @@ function home() {
 
       <section class="hero">
         <p class="muted">ESCOLHA SEU ESTILO</p>
+
         <h1>Seu ensaio começa aqui.</h1>
 
         <p class="muted">
@@ -108,11 +113,9 @@ function home() {
 }
 
 function gallery(id, name) {
-
   state.selected = [];
 
   app.innerHTML = `
-
     <div class="wrap">
 
       <button onclick="home()">
@@ -138,7 +141,6 @@ function gallery(id, name) {
       <div class="grid">
 
         ${demoPhotos.map((p, i) => `
-
           <div
             class="photoWrap card"
             id="p${i}"
@@ -158,7 +160,6 @@ function gallery(id, name) {
             </span>
 
           </div>
-
         `).join('')}
 
       </div>
@@ -184,7 +185,6 @@ function gallery(id, name) {
 }
 
 function pick(i) {
-
   const index = state.selected.indexOf(i);
 
   if (index < 0) {
@@ -197,24 +197,21 @@ function pick(i) {
 
   if (!el) return;
 
-  const selected =
-    state.selected.includes(i);
+  const selected = state.selected.includes(i);
 
   el.classList.toggle(
     'selected',
     selected
   );
 
-  const badge =
-    el.querySelector('.badge');
+  const badge = el.querySelector('.badge');
 
   if (badge) {
     badge.style.display =
       selected ? 'block' : 'none';
   }
 
-  const count =
-    document.querySelector('#count');
+  const count = document.querySelector('#count');
 
   if (count) {
     count.textContent =
@@ -223,7 +220,6 @@ function pick(i) {
 }
 
 function checkout(id, name) {
-
   if (!state.selected.length) {
     return toast(
       'Selecione pelo menos uma foto.'
@@ -231,7 +227,6 @@ function checkout(id, name) {
   }
 
   app.innerHTML = `
-
     <div
       class="wrap"
       style="max-width:620px"
@@ -300,7 +295,6 @@ function checkout(id, name) {
 }
 
 async function sendOrder(id, name) {
-
   const client =
     document
       .querySelector('#client')
@@ -320,29 +314,19 @@ async function sendOrder(id, name) {
       .trim();
 
   if (!client || !phone) {
-
     return toast(
       'Preencha nome e WhatsApp.'
     );
   }
 
   const order = {
-
     client_name: client,
-
     phone,
-
     category: id,
-
     category_name: name,
-
-    selected_photos:
-      state.selected,
-
+    selected_photos: state.selected,
     note,
-
-    status:
-      'Nova seleção'
+    status: 'Nova seleção'
   };
 
   const { error } =
@@ -351,7 +335,6 @@ async function sendOrder(id, name) {
       .insert(order);
 
   if (error) {
-
     return toast(
       'Erro ao enviar: ' +
       error.message
@@ -359,7 +342,6 @@ async function sendOrder(id, name) {
   }
 
   app.innerHTML = `
-
     <div
       class="wrap"
       style="
@@ -391,7 +373,6 @@ async function sendOrder(id, name) {
 }
 
 async function admin() {
-
   const pass =
     prompt(
       'Senha do administrador:'
@@ -401,7 +382,6 @@ async function admin() {
     pass !==
     cfg.adminPassword
   ) {
-
     return toast(
       'Senha incorreta.'
     );
@@ -413,7 +393,6 @@ async function admin() {
 }
 
 async function getOrders() {
-
   const {
     data,
     error
@@ -423,13 +402,11 @@ async function getOrders() {
       .select('*')
       .order(
         'created_at',
-        { ascending:false }
+        { ascending: false }
       );
 
   if (error) {
-
     console.error(error);
-
     return [];
   }
 
@@ -437,7 +414,6 @@ async function getOrders() {
 }
 
 async function getGalleries() {
-
   const {
     data,
     error
@@ -447,13 +423,11 @@ async function getGalleries() {
       .select('*')
       .order(
         'created_at',
-        { ascending:false }
+        { ascending: false }
       );
 
   if (error) {
-
     console.error(error);
-
     return [];
   }
 
@@ -461,7 +435,6 @@ async function getGalleries() {
 }
 
 async function getFinalSelections() {
-
   const {
     data,
     error
@@ -471,13 +444,11 @@ async function getFinalSelections() {
       .select('*')
       .order(
         'created_at',
-        { ascending:false }
+        { ascending: false }
       );
 
   if (error) {
-
     console.error(error);
-
     return [];
   }
 
@@ -485,21 +456,18 @@ async function getFinalSelections() {
 }
 
 function originalPhotoHtml(indices) {
-
   if (!Array.isArray(indices)) {
     return '';
   }
 
   return indices
     .map(index => {
-
       const url =
         demoPhotos[index];
 
       if (!url) return '';
 
       return `
-
         <div
           style="
             min-width:140px;
@@ -524,7 +492,7 @@ function originalPhotoHtml(indices) {
               margin-top:6px;
             "
           >
-            Foto ${Number(index)+1}
+            Foto ${Number(index) + 1}
           </div>
 
         </div>
@@ -533,8 +501,53 @@ function originalPhotoHtml(indices) {
     .join('');
 }
 
-async function renderAdmin() {
+function finalPhotosHtml(urls) {
+  if (!Array.isArray(urls)) {
+    return '';
+  }
 
+  return urls
+    .map((url, i) => `
+      <div
+        style="
+          min-width:140px;
+          max-width:140px;
+        "
+      >
+
+        <a
+          href="${url}"
+          target="_blank"
+        >
+          <img
+            src="${url}"
+            alt="Foto escolhida ${i + 1}"
+            style="
+              width:140px;
+              height:180px;
+              object-fit:cover;
+              border-radius:16px;
+              display:block;
+            "
+          >
+        </a>
+
+        <div
+          style="
+            text-align:center;
+            font-weight:700;
+            margin-top:6px;
+          "
+        >
+          Escolhida ${i + 1}
+        </div>
+
+      </div>
+    `)
+    .join('');
+}
+
+async function renderAdmin() {
   const orders =
     await getOrders();
 
@@ -545,7 +558,6 @@ async function renderAdmin() {
     await getFinalSelections();
 
   app.innerHTML = `
-
     <div class="wrap">
 
       <div class="hero">
@@ -589,7 +601,6 @@ async function renderAdmin() {
         orders.length
         ?
         orders.map(o => {
-
           const gallery =
             galleries.find(
               g =>
@@ -607,7 +618,6 @@ async function renderAdmin() {
             );
 
           return `
-
             <div class="adminCard">
 
               <div
@@ -678,13 +688,11 @@ async function renderAdmin() {
                   padding-bottom:12px;
                 "
               >
-
                 ${
                   originalPhotoHtml(
                     o.selected_photos
                   )
                 }
-
               </div>
 
               ${
@@ -728,24 +736,54 @@ async function renderAdmin() {
                       margin-top:15px;
                       padding:14px;
                       border:
-                      2px solid #111;
+                        2px solid #111;
                       border-radius:16px;
                     "
                   >
 
-                    <b>
+                    <h3
+                      style="
+                        margin-top:0;
+                      "
+                    >
                       Seleção final recebida ✓
-                    </b>
+                    </h3>
 
                     <p>
-                      ${
-                        final
-                          .selected_photos
-                          ?.length
-                        || 0
-                      }
-                      fotos escolhidas
+                      <b>
+                        ${
+                          final.selected_photos
+                            ?.length
+                          || 0
+                        }
+                        ${
+                          (
+                            final.selected_photos
+                              ?.length
+                            || 0
+                          ) === 1
+                          ?
+                          'foto escolhida pela cliente'
+                          :
+                          'fotos escolhidas pela cliente'
+                        }
+                      </b>
                     </p>
+
+                    <div
+                      style="
+                        display:flex;
+                        gap:12px;
+                        overflow-x:auto;
+                        padding:8px 0 12px;
+                      "
+                    >
+                      ${
+                        finalPhotosHtml(
+                          final.selected_photos
+                        )
+                      }
+                    </div>
 
                   </div>
                 `
@@ -794,7 +832,6 @@ async function renderAdmin() {
         }).join('')
         :
         `
-
           <div class="adminCard">
 
             <h3>
@@ -819,12 +856,10 @@ function readyGallery(
   orderId,
   clientName
 ) {
-
   state.uploadFiles = [];
   state.uploadPreviews = [];
 
   app.innerHTML = `
-
     <div
       class="wrap"
       style="
@@ -879,7 +914,7 @@ function readyGallery(
           style="
             display:grid;
             grid-template-columns:
-            repeat(2,1fr);
+              repeat(2,1fr);
             gap:12px;
           "
         ></div>
@@ -1050,7 +1085,6 @@ function readyGallery(
 }
 
 function handleReadyFiles(input) {
-
   const files =
     Array.from(
       input.files || []
@@ -1068,7 +1102,6 @@ function handleReadyFiles(input) {
 }
 
 function renderUploadPreview() {
-
   const box =
     document
       .querySelector(
@@ -1081,7 +1114,6 @@ function renderUploadPreview() {
     state.uploadPreviews
       .map(
         (url, i) => `
-
           <div
             style="
               position:relative;
@@ -1121,8 +1153,7 @@ function renderUploadPreview() {
 }
 
 function removeUploadFile(i) {
-
-  state.uploadFiles.splice(i,1);
+  state.uploadFiles.splice(i, 1);
 
   const old =
     state.uploadPreviews[i];
@@ -1131,13 +1162,12 @@ function removeUploadFile(i) {
     URL.revokeObjectURL(old);
   }
 
-  state.uploadPreviews.splice(i,1);
+  state.uploadPreviews.splice(i, 1);
 
   renderUploadPreview();
 }
 
 function safeFileName(name) {
-
   return name
     .toLowerCase()
     .normalize('NFD')
@@ -1155,9 +1185,7 @@ async function publishReadyGallery(
   orderId,
   clientName
 ) {
-
   if (!state.uploadFiles.length) {
-
     return toast(
       'Adicione pelo menos uma foto pronta.'
     );
@@ -1220,7 +1248,6 @@ async function publishReadyGallery(
     i < state.uploadFiles.length;
     i++
   ) {
-
     const file =
       state.uploadFiles[i];
 
@@ -1257,16 +1284,12 @@ async function publishReadyGallery(
           path,
           file,
           {
-            cacheControl:
-              '3600',
-
-            upsert:
-              false
+            cacheControl: '3600',
+            upsert: false
           }
         );
 
     if (uploadError) {
-
       console.error(
         uploadError
       );
@@ -1292,7 +1315,6 @@ async function publishReadyGallery(
   }
 
   const galleryRow = {
-
     order_id:
       Number(orderId),
 
@@ -1337,7 +1359,6 @@ async function publishReadyGallery(
       .single();
 
   if (galleryError) {
-
     console.error(
       galleryError
     );
@@ -1355,15 +1376,12 @@ async function publishReadyGallery(
     galleryData.id;
 
   try {
-
     await navigator
       .clipboard
       .writeText(url);
-
   } catch (e) {}
 
   app.innerHTML = `
-
     <div
       class="wrap"
       style="
@@ -1425,7 +1443,6 @@ async function publishReadyGallery(
 async function copyClientLink(
   orderId
 ) {
-
   const {
     data,
     error
@@ -1450,7 +1467,6 @@ async function copyClientLink(
     ||
     !data.length
   ) {
-
     return toast(
       'Crie a galeria pronta primeiro.'
     );
@@ -1466,7 +1482,6 @@ async function copyClientLink(
     gallery.id;
 
   try {
-
     await navigator
       .clipboard
       .writeText(url);
@@ -1474,9 +1489,7 @@ async function copyClientLink(
     toast(
       'Link da cliente copiado!'
     );
-
   } catch (e) {
-
     prompt(
       'Copie este link:',
       url
@@ -1485,7 +1498,6 @@ async function copyClientLink(
 }
 
 function watermarkLayer(g) {
-
   const repeat =
     Math.max(
       1,
@@ -1499,7 +1511,6 @@ function watermarkLayer(g) {
     );
 
   return `
-
     <div
       style="
         position:absolute;
@@ -1508,15 +1519,13 @@ function watermarkLayer(g) {
         overflow:hidden;
       "
     >
-
       ${
         Array
           .from(
-            { length:repeat }
+            { length: repeat }
           )
           .map(
             (_, i) => {
-
               const top =
                 8 +
                 (
@@ -1531,7 +1540,6 @@ function watermarkLayer(g) {
                 ) % 70;
 
               return `
-
                 <div
                   style="
                     position:absolute;
@@ -1586,13 +1594,11 @@ function watermarkLayer(g) {
           )
           .join('')
       }
-
     </div>
   `;
 }
 
 async function clientReady(id) {
-
   const {
     data:
     gallery,
@@ -1612,9 +1618,7 @@ async function clientReady(id) {
     ||
     !gallery
   ) {
-
     app.innerHTML = `
-
       <div class="wrap">
 
         <h2>
@@ -1630,7 +1634,6 @@ async function clientReady(id) {
   state.selected = [];
 
   app.innerHTML = `
-
     <div class="wrap">
 
       <div class="hero">
@@ -1660,7 +1663,6 @@ async function clientReady(id) {
           (gallery.photos || [])
             .map(
               (p, i) => `
-
                 <div
                   class="photoWrap card"
                   id="p${i}"
@@ -1728,9 +1730,7 @@ async function sendFinalSelection(
   galleryId,
   orderId
 ) {
-
   if (!state.selected.length) {
-
     return toast(
       'Selecione pelo menos uma foto.'
     );
@@ -1738,7 +1738,9 @@ async function sendFinalSelection(
 
   const {
     data:
-    gallery
+    gallery,
+    error:
+    galleryError
   } =
     await sb
       .from('galleries')
@@ -1749,11 +1751,19 @@ async function sendFinalSelection(
       )
       .single();
 
-  const selectedUrls =
-    state.selected.map(
-      index =>
-        gallery.photos[index]
+  if (galleryError || !gallery) {
+    return toast(
+      'Não foi possível carregar a galeria.'
     );
+  }
+
+  const selectedUrls =
+    state.selected
+      .map(
+        index =>
+          gallery.photos[index]
+      )
+      .filter(Boolean);
 
   const {
     error
@@ -1763,7 +1773,6 @@ async function sendFinalSelection(
         'final_selections'
       )
       .insert({
-
         gallery_id:
           Number(galleryId),
 
@@ -1775,7 +1784,6 @@ async function sendFinalSelection(
       });
 
   if (error) {
-
     return toast(
       'Erro ao enviar seleção final: ' +
       error.message
@@ -1783,7 +1791,6 @@ async function sendFinalSelection(
   }
 
   app.innerHTML = `
-
     <div
       class="wrap"
       style="
@@ -1808,8 +1815,7 @@ async function sendFinalSelection(
 
 document
   .querySelector('#adminBtn')
-  .onclick =
-  admin;
+  .onclick = admin;
 
 const hash =
   location.hash.match(
@@ -1817,12 +1823,9 @@ const hash =
   );
 
 if (hash) {
-
   clientReady(
     hash[1]
   );
-
 } else {
-
   home();
-            }
+  }
