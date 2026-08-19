@@ -1,17 +1,746 @@
-const cfg=window.FOTOFLOW_CONFIG;const app=document.querySelector('#app');let sb=null,state={selected:[],admin:false};
-if(cfg.supabaseUrl&&cfg.supabaseAnonKey) sb=supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
-const demoCats=[{id:'aniversario',name:'Aniversário',desc:'Fotos marcantes para comemorar seu dia.',cover:'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=900&q=80'},{id:'jardim',name:'Jardim',desc:'Ensaio leve, elegante e natural.',cover:'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=900&q=80'},{id:'elegante',name:'Elegante',desc:'Retratos sofisticados e premium.',cover:'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80'}];
-const demoPhotos=['https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=700&q=80','https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=700&q=80','https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=700&q=80','https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=700&q=80'];
-function toast(t){let x=document.querySelector('#toast');x.textContent=t;x.style.display='block';setTimeout(()=>x.style.display='none',2200)}
-function home(){state.selected=[];app.innerHTML=`<div class="wrap"><section class="hero"><p class="muted">ESCOLHA SEU ESTILO</p><h1>Seu ensaio começa aqui.</h1><p class="muted">Escolha uma categoria, marque suas fotos favoritas e envie sua seleção.</p></section><div class="grid">${demoCats.map(c=>`<article class="card"><img class="cover" src="${c.cover}"><div class="pad"><h2>${c.name}</h2><p class="muted">${c.desc}</p><button class="primary" onclick="gallery('${c.id}','${c.name}')">Ver fotos</button></div></article>`).join('')}</div></div>`}
-function gallery(id,name){state.selected=[];app.innerHTML=`<div class="wrap"><button onclick="home()">← Voltar</button><div class="hero"><p class="muted">ENSAIO</p><h1>${name}</h1><p>Toque nas fotos que deseja.</p></div><div class="grid">${demoPhotos.map((p,i)=>`<div class="photoWrap card" id="p${i}" onclick="pick(${i})"><img class="photo" src="${p}"><span class="badge" style="display:none">✓ Selecionada</span></div>`).join('')}</div></div><div class="bar"><b><span id="count">0</span> selecionadas</b><button class="primary" onclick="checkout('${id}','${name}')">Continuar →</button></div>`}
-function pick(i){let k=state.selected.indexOf(i);k<0?state.selected.push(i):state.selected.splice(k,1);let e=document.querySelector('#p'+i);e.classList.toggle('selected',k<0);e.querySelector('.badge').style.display=k<0?'block':'none';document.querySelector('#count').textContent=state.selected.length}
-function checkout(id,name){if(!state.selected.length)return toast('Selecione pelo menos uma foto.');app.innerHTML=`<div class="wrap" style="max-width:620px"><button onclick="gallery('${id}','${name}')">← Voltar</button><div class="hero"><h1>Quase pronto.</h1><p class="muted">Informe seus dados para identificar a seleção.</p></div><label>Seu nome</label><input id="client" class="input" placeholder="Nome completo"><label>WhatsApp</label><input id="phone" class="input" placeholder="(00) 00000-0000"><label>Observação (opcional)</label><textarea id="note" class="input" rows="4" placeholder="Algum pedido especial?"></textarea><button class="primary" style="width:100%" onclick="sendOrder('${id}','${name}')">Enviar minhas escolhas</button></div>`}
-async function sendOrder(id,name){let client=document.querySelector('#client').value.trim(),phone=document.querySelector('#phone').value.trim(),note=document.querySelector('#note').value.trim();if(!client||!phone)return toast('Preencha nome e WhatsApp.');let order={client_name:client,phone,category:id,category_name:name,selected_photos:state.selected,note,status:'Nova seleção'};if(sb){let {error}=await sb.from('orders').insert(order);if(error)return toast('Erro ao enviar: '+error.message)}else{let arr=JSON.parse(localStorage.getItem('fotoflow_orders')||'[]');arr.unshift({...order,id:Date.now(),created_at:new Date().toISOString()});localStorage.setItem('fotoflow_orders',JSON.stringify(arr))}app.innerHTML=`<div class="wrap" style="max-width:650px;text-align:center;padding-top:90px"><h1>Seleção enviada! ✓</h1><p class="muted">Recebemos suas escolhas. Agora o estúdio poderá preparar suas fotos.</p><button class="primary" onclick="home()">Voltar ao início</button></div>`}
-async function admin(){let pass=prompt('Senha do administrador:');if(pass!==cfg.adminPassword)return toast('Senha incorreta.');state.admin=true;renderAdmin()}
-async function getOrders(){if(sb){let {data,error}=await sb.from('orders').select('*').order('created_at',{ascending:false});return error?[]:data}return JSON.parse(localStorage.getItem('fotoflow_orders')||'[]')}
-async function renderAdmin(){let orders=await getOrders();app.innerHTML=`<div class="wrap"><div class="hero"><p class="muted">PAINEL ADMINISTRATIVO</p><h1>Pedidos</h1><p class="muted">Acompanhe seleções e prepare a galeria final.</p></div><div class="tabs"><button class="active">Todos</button><button>Novas seleções</button><button>Em produção</button><button>Finalizados</button></div>${orders.length?orders.map(o=>`<div class="adminCard"><div class="row" style="justify-content:space-between"><div><h3>${o.client_name}</h3><p class="muted">${o.phone} • ${o.category_name||o.category}</p></div><b>${o.selected_photos?.length||0} fotos</b></div><p>Status: <b>${o.status||'Nova seleção'}</b></p><p class="muted">${o.note||'Sem observações'}</p><div class="row"><button onclick="readyGallery('${o.id}','${String(o.client_name).replaceAll("'","\\'")}')">Criar galeria pronta</button><button onclick="copyClientLink('${o.id}')">Copiar link</button></div></div>`).join(''):`<div class="adminCard"><h3>Nenhum pedido ainda</h3><p class="muted">Quando uma cliente enviar uma seleção, ela aparecerá aqui.</p></div>`}</div>`}
-function readyGallery(id,name){let author=prompt('Nome/assinatura da marca-d’água:',cfg.studioName)||cfg.studioName;localStorage.setItem('gallery_'+id,JSON.stringify({name,author,photos:demoPhotos}));location.hash='galeria='+id;clientReady(id)}
-function copyClientLink(id){let u=location.origin+location.pathname+'#galeria='+id;navigator.clipboard?.writeText(u);toast('Link da cliente copiado!')}
-function clientReady(id){let g=JSON.parse(localStorage.getItem('gallery_'+id)||'null');if(!g){app.innerHTML='<div class="wrap"><h2>Galeria ainda não publicada.</h2></div>';return}state.selected=[];app.innerHTML=`<div class="wrap"><div class="hero"><p class="muted">FOTOS PRONTAS • ${g.name}</p><h1>Escolha suas favoritas.</h1><p class="muted">As prévias possuem marca-d’água. Toque para selecionar.</p></div><div class="grid">${g.photos.map((p,i)=>`<div class="photoWrap card" id="p${i}" onclick="pick(${i})"><img class="photo" src="${p}"><div class="watermark">${g.author}</div><span class="badge" style="display:none">✓ Selecionada</span></div>`).join('')}</div></div><div class="bar"><b><span id="count">0</span> selecionadas</b><button class="primary" onclick="toast('Seleção final enviada!')">Enviar seleção final</button></div>`}
-document.querySelector('#adminBtn').onclick=admin;let m=location.hash.match(/galeria=([^&]+)/);m?clientReady(m[1]):home();
+const cfg = window.FOTOFLOW_CONFIG;
+const app = document.querySelector('#app');
+
+let sb = null;
+let state = {
+  selected: [],
+  admin: false
+};
+
+if (cfg.supabaseUrl && cfg.supabaseAnonKey) {
+  sb = supabase.createClient(
+    cfg.supabaseUrl,
+    cfg.supabaseAnonKey
+  );
+}
+
+const demoCats = [
+  {
+    id: 'aniversario',
+    name: 'Aniversário',
+    desc: 'Fotos marcantes para comemorar seu dia.',
+    cover: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 'jardim',
+    name: 'Jardim',
+    desc: 'Ensaio leve, elegante e natural.',
+    cover: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 'elegante',
+    name: 'Elegante',
+    desc: 'Retratos sofisticados e premium.',
+    cover: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80'
+  }
+];
+
+const demoPhotos = [
+  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=700&q=80',
+  'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=700&q=80',
+  'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=700&q=80',
+  'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=700&q=80'
+];
+
+function toast(t) {
+  let x = document.querySelector('#toast');
+  x.textContent = t;
+  x.style.display = 'block';
+
+  setTimeout(() => {
+    x.style.display = 'none';
+  }, 2200);
+}
+
+function home() {
+  state.selected = [];
+
+  app.innerHTML = `
+    <div class="wrap">
+      <section class="hero">
+        <p class="muted">ESCOLHA SEU ESTILO</p>
+        <h1>Seu ensaio começa aqui.</h1>
+        <p class="muted">
+          Escolha uma categoria, marque suas fotos favoritas e envie sua seleção.
+        </p>
+      </section>
+
+      <div class="grid">
+        ${demoCats.map(c => `
+          <article class="card">
+            <img class="cover" src="${c.cover}">
+
+            <div class="pad">
+              <h2>${c.name}</h2>
+              <p class="muted">${c.desc}</p>
+
+              <button
+                class="primary"
+                onclick="gallery('${c.id}','${c.name}')"
+              >
+                Ver fotos
+              </button>
+            </div>
+          </article>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function gallery(id, name) {
+  state.selected = [];
+
+  app.innerHTML = `
+    <div class="wrap">
+
+      <button onclick="home()">
+        ← Voltar
+      </button>
+
+      <div class="hero">
+        <p class="muted">ENSAIO</p>
+        <h1>${name}</h1>
+        <p>Toque nas fotos que deseja.</p>
+      </div>
+
+      <div class="grid">
+        ${demoPhotos.map((p, i) => `
+          <div
+            class="photoWrap card"
+            id="p${i}"
+            onclick="pick(${i})"
+          >
+            <img class="photo" src="${p}">
+
+            <span
+              class="badge"
+              style="display:none"
+            >
+              ✓ Selecionada
+            </span>
+          </div>
+        `).join('')}
+      </div>
+
+    </div>
+
+    <div class="bar">
+      <b>
+        <span id="count">0</span>
+        selecionadas
+      </b>
+
+      <button
+        class="primary"
+        onclick="checkout('${id}','${name}')"
+      >
+        Continuar →
+      </button>
+    </div>
+  `;
+}
+
+function pick(i) {
+  let k = state.selected.indexOf(i);
+
+  if (k < 0) {
+    state.selected.push(i);
+  } else {
+    state.selected.splice(k, 1);
+  }
+
+  let e = document.querySelector('#p' + i);
+
+  e.classList.toggle(
+    'selected',
+    k < 0
+  );
+
+  e.querySelector('.badge').style.display =
+    k < 0 ? 'block' : 'none';
+
+  document.querySelector('#count').textContent =
+    state.selected.length;
+}
+
+function checkout(id, name) {
+  if (!state.selected.length) {
+    return toast('Selecione pelo menos uma foto.');
+  }
+
+  app.innerHTML = `
+    <div class="wrap" style="max-width:620px">
+
+      <button onclick="gallery('${id}','${name}')">
+        ← Voltar
+      </button>
+
+      <div class="hero">
+        <h1>Quase pronto.</h1>
+
+        <p class="muted">
+          Informe seus dados para identificar a seleção.
+        </p>
+      </div>
+
+      <label>Seu nome</label>
+
+      <input
+        id="client"
+        class="input"
+        placeholder="Nome completo"
+      >
+
+      <label>WhatsApp</label>
+
+      <input
+        id="phone"
+        class="input"
+        placeholder="(00) 00000-0000"
+      >
+
+      <label>
+        Observação (opcional)
+      </label>
+
+      <textarea
+        id="note"
+        class="input"
+        rows="4"
+        placeholder="Algum pedido especial?"
+      ></textarea>
+
+      <button
+        class="primary"
+        style="width:100%"
+        onclick="sendOrder('${id}','${name}')"
+      >
+        Enviar minhas escolhas
+      </button>
+
+    </div>
+  `;
+}
+
+async function sendOrder(id, name) {
+  let client =
+    document.querySelector('#client').value.trim();
+
+  let phone =
+    document.querySelector('#phone').value.trim();
+
+  let note =
+    document.querySelector('#note').value.trim();
+
+  if (!client || !phone) {
+    return toast(
+      'Preencha nome e WhatsApp.'
+    );
+  }
+
+  let order = {
+    client_name: client,
+    phone,
+    category: id,
+    category_name: name,
+    selected_photos: state.selected,
+    note,
+    status: 'Nova seleção'
+  };
+
+  if (sb) {
+    let { error } =
+      await sb
+        .from('orders')
+        .insert(order);
+
+    if (error) {
+      return toast(
+        'Erro ao enviar: ' +
+        error.message
+      );
+    }
+  } else {
+    let arr =
+      JSON.parse(
+        localStorage.getItem(
+          'fotoflow_orders'
+        ) || '[]'
+      );
+
+    arr.unshift({
+      ...order,
+      id: Date.now(),
+      created_at:
+        new Date().toISOString()
+    });
+
+    localStorage.setItem(
+      'fotoflow_orders',
+      JSON.stringify(arr)
+    );
+  }
+
+  app.innerHTML = `
+    <div
+      class="wrap"
+      style="
+        max-width:650px;
+        text-align:center;
+        padding-top:90px
+      "
+    >
+      <h1>
+        Seleção enviada! ✓
+      </h1>
+
+      <p class="muted">
+        Recebemos suas escolhas.
+        Agora o estúdio poderá preparar suas fotos.
+      </p>
+
+      <button
+        class="primary"
+        onclick="home()"
+      >
+        Voltar ao início
+      </button>
+    </div>
+  `;
+}
+
+async function admin() {
+  let pass =
+    prompt(
+      'Senha do administrador:'
+    );
+
+  if (pass !== cfg.adminPassword) {
+    return toast(
+      'Senha incorreta.'
+    );
+  }
+
+  state.admin = true;
+
+  renderAdmin();
+}
+
+async function getOrders() {
+  if (sb) {
+    let {
+      data,
+      error
+    } =
+      await sb
+        .from('orders')
+        .select('*')
+        .order(
+          'created_at',
+          {
+            ascending: false
+          }
+        );
+
+    if (error) {
+      console.error(error);
+      return [];
+    }
+
+    return data;
+  }
+
+  return JSON.parse(
+    localStorage.getItem(
+      'fotoflow_orders'
+    ) || '[]'
+  );
+}
+
+async function renderAdmin() {
+  let orders =
+    await getOrders();
+
+  app.innerHTML = `
+    <div class="wrap">
+
+      <div class="hero">
+        <p class="muted">
+          PAINEL ADMINISTRATIVO
+        </p>
+
+        <h1>
+          Pedidos
+        </h1>
+
+        <p class="muted">
+          Acompanhe seleções e prepare a galeria final.
+        </p>
+      </div>
+
+      <div class="tabs">
+        <button class="active">
+          Todos
+        </button>
+
+        <button>
+          Novas seleções
+        </button>
+
+        <button>
+          Em produção
+        </button>
+
+        <button>
+          Finalizados
+        </button>
+      </div>
+
+      ${
+        orders.length
+        ? orders.map(o => {
+
+            const escolhidas =
+              Array.isArray(
+                o.selected_photos
+              )
+              ? o.selected_photos
+              : [];
+
+            const fotosHtml =
+              escolhidas.map(i => {
+
+                const indice =
+                  Number(i);
+
+                const foto =
+                  demoPhotos[indice];
+
+                if (!foto) {
+                  return '';
+                }
+
+                return `
+                  <div
+                    style="
+                      width:110px;
+                      flex:0 0 110px;
+                    "
+                  >
+
+                    <a
+                      href="${foto}"
+                      target="_blank"
+                    >
+
+                      <img
+                        src="${foto}"
+                        style="
+                          width:110px;
+                          height:140px;
+                          object-fit:cover;
+                          border-radius:12px;
+                          display:block;
+                        "
+                      >
+
+                    </a>
+
+                    <div
+                      style="
+                        text-align:center;
+                        margin-top:6px;
+                        font-size:13px;
+                        font-weight:700;
+                      "
+                    >
+                      Foto ${indice + 1}
+                    </div>
+
+                  </div>
+                `;
+              }).join('');
+
+            return `
+              <div class="adminCard">
+
+                <div
+                  class="row"
+                  style="
+                    justify-content:space-between
+                  "
+                >
+
+                  <div>
+                    <h3>
+                      ${o.client_name}
+                    </h3>
+
+                    <p class="muted">
+                      ${o.phone}
+                      •
+                      ${
+                        o.category_name
+                        ||
+                        o.category
+                      }
+                    </p>
+                  </div>
+
+                  <b>
+                    ${escolhidas.length}
+                    fotos
+                  </b>
+
+                </div>
+
+                <p>
+                  Status:
+                  <b>
+                    ${
+                      o.status
+                      ||
+                      'Nova seleção'
+                    }
+                  </b>
+                </p>
+
+                <p class="muted">
+                  ${
+                    o.note
+                    ||
+                    'Sem observações'
+                  }
+                </p>
+
+                <div style="margin-top:20px">
+
+                  <b>
+                    Fotos escolhidas pela cliente
+                  </b>
+
+                  <div
+                    style="
+                      display:flex;
+                      gap:12px;
+                      overflow-x:auto;
+                      padding:14px 0;
+                    "
+                  >
+
+                    ${
+                      fotosHtml
+                      ||
+                      `
+                        <span class="muted">
+                          Nenhuma foto encontrada.
+                        </span>
+                      `
+                    }
+
+                  </div>
+
+                </div>
+
+                <div class="row">
+
+                  <button
+                    onclick="readyGallery(
+                      '${o.id}',
+                      '${String(
+                        o.client_name
+                      ).replaceAll(
+                        "'",
+                        "\\'"
+                      )}'
+                    )"
+                  >
+                    Criar galeria pronta
+                  </button>
+
+                  <button
+                    onclick="copyClientLink(
+                      '${o.id}'
+                    )"
+                  >
+                    Copiar link
+                  </button>
+
+                </div>
+
+              </div>
+            `;
+          }).join('')
+
+        : `
+          <div class="adminCard">
+
+            <h3>
+              Nenhum pedido ainda
+            </h3>
+
+            <p class="muted">
+              Quando uma cliente enviar uma seleção,
+              ela aparecerá aqui.
+            </p>
+
+          </div>
+        `
+      }
+
+    </div>
+  `;
+}
+
+function readyGallery(id, name) {
+  let author =
+    prompt(
+      'Nome/assinatura da marca-d’água:',
+      cfg.studioName
+    )
+    ||
+    cfg.studioName;
+
+  localStorage.setItem(
+    'gallery_' + id,
+    JSON.stringify({
+      name,
+      author,
+      photos: demoPhotos
+    })
+  );
+
+  location.hash =
+    'galeria=' + id;
+
+  clientReady(id);
+}
+
+function copyClientLink(id) {
+  let u =
+    location.origin +
+    location.pathname +
+    '#galeria=' +
+    id;
+
+  navigator.clipboard
+    ?.writeText(u);
+
+  toast(
+    'Link da cliente copiado!'
+  );
+}
+
+function clientReady(id) {
+  let g =
+    JSON.parse(
+      localStorage.getItem(
+        'gallery_' + id
+      ) || 'null'
+    );
+
+  if (!g) {
+    app.innerHTML = `
+      <div class="wrap">
+        <h2>
+          Galeria ainda não publicada.
+        </h2>
+      </div>
+    `;
+
+    return;
+  }
+
+  state.selected = [];
+
+  app.innerHTML = `
+    <div class="wrap">
+
+      <div class="hero">
+
+        <p class="muted">
+          FOTOS PRONTAS
+          •
+          ${g.name}
+        </p>
+
+        <h1>
+          Escolha suas favoritas.
+        </h1>
+
+        <p class="muted">
+          As prévias possuem marca-d’água.
+          Toque para selecionar.
+        </p>
+
+      </div>
+
+      <div class="grid">
+
+        ${g.photos.map((p, i) => `
+          <div
+            class="photoWrap card"
+            id="p${i}"
+            onclick="pick(${i})"
+          >
+
+            <img
+              class="photo"
+              src="${p}"
+            >
+
+            <div class="watermark">
+              ${g.author}
+            </div>
+
+            <span
+              class="badge"
+              style="display:none"
+            >
+              ✓ Selecionada
+            </span>
+
+          </div>
+        `).join('')}
+
+      </div>
+
+    </div>
+
+    <div class="bar">
+
+      <b>
+        <span id="count">
+          0
+        </span>
+        selecionadas
+      </b>
+
+      <button
+        class="primary"
+        onclick="
+          toast(
+            'Seleção final enviada!'
+          )
+        "
+      >
+        Enviar seleção final
+      </button>
+
+    </div>
+  `;
+}
+
+document
+  .querySelector('#adminBtn')
+  .onclick = admin;
+
+let m =
+  location.hash.match(
+    /galeria=([^&]+)/
+  );
+
+m
+  ? clientReady(m[1])
+  : home();
